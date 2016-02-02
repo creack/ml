@@ -23,12 +23,12 @@ var addr = flag.String("addr", "localhost:8080", "http service address")
 
 var upgrader = websocket.Upgrader{} // use default options
 
-var tpl = `set terminal png transparent nocrop enhanced size 450,320 font "arial,8"
-set key inside left top vertical Right noreverse enhanced autotitle box lt black linewidth 1.000 dashtype solid
-set samples 50, 50
-set title "Simple Plots"
-set title  font ",20" norotate
-plot [-10:10] cos(atan(x+{{.}}))
+var tpl = `
+set terminal png transparent nocrop enhanced size 450,320 font "arial,8"
+set key bmargin center horizontal Right noreverse enhanced autotitle box lt black linewidth 1.000 dashtype solid
+set samples 160
+set style data lines
+plot sin(1/90*x+{{.}}),cos(x+{{.}})
 `
 
 func echo(w http.ResponseWriter, r *http.Request) {
@@ -37,10 +37,11 @@ func echo(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade:", err)
 		return
 	}
-	defer c.Close()
-	i := 0
-	for {
-		time.Sleep(500 * time.Millisecond)
+	defer func() { _ = c.Close() }()
+
+	for i := 0; ; i++ {
+		i %= 90
+		time.Sleep(1)
 		// mt, message, err := c.ReadMessage()
 		// if err != nil {
 		// 	log.Println("read:", err)
@@ -63,12 +64,11 @@ func echo(w http.ResponseWriter, r *http.Request) {
 			log.Println("write:", err)
 			break
 		}
-		i++
 	}
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
-	homeTemplate.Execute(w, "ws://"+r.Host+"/echo")
+func home(w http.ResponseWriter, req *http.Request) {
+	_ = homeTemplate.Execute(w, "ws://"+req.Host+"/echo")
 }
 
 func main() {

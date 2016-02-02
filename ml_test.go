@@ -22,6 +22,20 @@ func TestSimplifiedSquaredError(t *testing.T) {
 		{X: 3, Y: 3},
 	}
 
+	plot, err := testSimpleDataset.PlotData()
+	if err != nil {
+		t.Errorf("Error plotting the graph: %s", err)
+	} else {
+		t.Logf("%s", plot)
+	}
+
+	costPlot, err := testSimpleDataset.PlotLineraRegressionCost(0, 1, 0.1, 0, 1, 0.1)
+	if err != nil {
+		t.Errorf("Error plotting the graph: %s", err)
+	} else {
+		t.Logf("%s", costPlot)
+	}
+
 	for _, elem := range []struct {
 		ml.Hypothesis
 		expect float64

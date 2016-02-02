@@ -1,8 +1,13 @@
-set terminal png transparent nocrop enhanced size 450,320 font "arial,8" 
-#set output 'simple.1.png'
-set key inside left top vertical Right noreverse enhanced autotitle box lt black linewidth 1.000 dashtype solid
-set samples 50, 50
-set title "Simple Plots" 
-set title  font ",20" norotate
-plot [-10:10] sin(x),atan(x),cos(atan(x))
-
+set terminal dumb transparent nocrop enhanced size 450,320 font "arial,8"
+#set output 'param.1.png'
+set key bmargin center horizontal Right noreverse enhanced autotitle box lt black linewidth 1.000 dashtype solid
+set samples 160
+set style data lines
+plot '-' using 1:2
+1 10
+2 20
+3 32
+4 40
+5 50
+e
+#plot sin(x)
