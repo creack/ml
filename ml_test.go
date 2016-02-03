@@ -22,6 +22,10 @@ func TestSimplifiedSquaredError(t *testing.T) {
 		{X: 3, Y: 3},
 	}
 
+	lr := ml.LinearRegression{Θ0: -0.1, Θ1: 3}
+	lr.GradientDescent(testSimpleDataset, 0.001, false)
+	println(lr.String())
+
 	plot, err := testSimpleDataset.PlotData()
 	if err != nil {
 		t.Errorf("Error plotting the graph: %s", err)
@@ -29,7 +33,14 @@ func TestSimplifiedSquaredError(t *testing.T) {
 		t.Logf("%s", plot)
 	}
 
-	costPlot, err := testSimpleDataset.PlotLineraRegressionCost(0, 1, 0.1, 0, 1, 0.1)
+	simplifiedCostPlot, err := testSimpleDataset.PlotLineraRegressionSimplifiedCost(-0.5, 3, 0.5)
+	if err != nil {
+		t.Errorf("Error plotting the graph: %s", err)
+	} else {
+		t.Logf("%s", simplifiedCostPlot)
+	}
+
+	costPlot, err := testSimpleDataset.PlotLineraRegressionCost(10, -20, -0.5, -20, 10, 0.5)
 	if err != nil {
 		t.Errorf("Error plotting the graph: %s", err)
 	} else {

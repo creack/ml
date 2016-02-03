@@ -6,16 +6,14 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
-	"os/exec"
-	"strings"
 	"time"
 
 	"encoding/base64"
 
+	"github.com/creack/ml"
 	"github.com/gorilla/websocket"
 )
 
@@ -39,32 +37,32 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = c.Close() }()
 
-	for i := 0; ; i++ {
-		i %= 90
-		time.Sleep(1)
-		// mt, message, err := c.ReadMessage()
-		// if err != nil {
-		// 	log.Println("read:", err)
-		// 	break
-		// }
-		// log.Printf("recv: %s", message)
+	var testSimpleDataset = ml.Dataset{
+		{X: 1, Y: 1},
+		{X: 2, Y: 2},
+		{X: 3, Y: 3},
+	}
 
-		cmd := exec.Command("gnuplot")
-		cmd.Stdin = strings.NewReader(strings.Replace(tpl, "{{.}}", fmt.Sprint(i), -1))
-		buf, err := cmd.CombinedOutput()
-		if err != nil {
-			log.Println("gnuplot:", err)
-			break
-		}
+	time.Sleep(50 * time.Millisecond)
 
+	lr := &ml.LinearRegression{Θ0: -0.1, Θ1: 3}
+	ch := lr.GradientDescent(testSimpleDataset, 0.001, true)
+	if err != nil {
+		log.Println("plot:", err)
+		return
+	}
+
+	for buf := range ch {
+		//		println("New plot for", lr.String())
+		//	time.Sleep(100 * time.Millisecond)
 		// TODO: encode to byte to avoid triple copy.
-		message := base64.StdEncoding.EncodeToString(buf)
-
+		message := base64.StdEncoding.EncodeToString([]byte(buf))
 		if err := c.WriteMessage(websocket.TextMessage, []byte(message)); err != nil {
 			log.Println("write:", err)
-			break
+			return
 		}
 	}
+	_ = c.WriteControl(websocket.CloseNormalClosure, []byte("gradient descent converged!"), time.Time{})
 }
 
 func home(w http.ResponseWriter, req *http.Request) {
