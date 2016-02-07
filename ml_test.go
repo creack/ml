@@ -2,6 +2,7 @@ package ml_test
 
 import (
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/creack/ml"
@@ -67,5 +68,33 @@ func TestSimplifiedSquaredError(t *testing.T) {
 		if expect, got := stringify(elem.expect), stringify(elem.Hypothesis.SquaredError(testSimpleDataset)); expect != got {
 			t.Errorf("[%d] Unexpected simplified squared error for simple dataset\nExpect:\t%s\nGot:\t%s", i, expect, got)
 		}
+	}
+}
+
+func TestGradientDescent(t *testing.T) {
+	var testSimpleDataset = ml.Dataset{
+		X: ml.Matrix{
+			{1},
+			{2},
+			{3},
+		},
+		Y: ml.Vector{
+			{1},
+			{2},
+			{3},
+		},
+	}
+	var parameters = ml.Vector{
+		{-0.1},
+		{3},
+	}
+
+	lr := &ml.LinearRegression{Θ: parameters}
+	lr.GradientDescent(testSimpleDataset, 0.1, false)
+	if expect, got := stringify(0.), stringify(math.Abs(lr.Θ[0][0])); expect != got {
+		t.Fatalf("Unexpected Θ0 for gradient descent.\nExpect:\t%s\nGot:\t%s", expect, got)
+	}
+	if expect, got := stringify(1.), stringify(lr.Θ[1][0]); expect != got {
+		t.Fatalf("Unexpected Θ0 for gradient descent.\nExpect:\t%s\nGot:\t%s", expect, got)
 	}
 }

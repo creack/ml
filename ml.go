@@ -107,9 +107,11 @@ func (b LinearRegression) SquaredError(dataset Dataset) float64 {
 
 	// Add x(0) = 1 column to dataset.
 	m, n := dataset.X.Dim()
-	dataset.X = NewMatrix(m, n+1).SetSubMatrix(dataset.X, 0, 1)
-	for i := 0; i < len(dataset.X); i++ {
-		dataset.X[i][0] = 1
+	if n != len(b.Θ) {
+		dataset.X = NewMatrix(m, n+1).SetSubMatrix(dataset.X, 0, 1)
+		for i := 0; i < len(dataset.X); i++ {
+			dataset.X[i][0] = 1
+		}
 	}
 	// Process the sum of square error.
 	var sum float64
@@ -124,9 +126,18 @@ func (b LinearRegression) SquaredError(dataset Dataset) float64 {
 
 // PartialDerivative .
 func (b LinearRegression) PartialDerivative(dataset Dataset, j int) float64 {
+
+	// Add x(0) = 1 column to dataset.
+	m, n := dataset.X.Dim()
+	if n != len(b.Θ) {
+		dataset.X = NewMatrix(m, n+1).SetSubMatrix(dataset.X, 0, 1)
+		for i := 0; i < len(dataset.X); i++ {
+			dataset.X[i][0] = 1
+		}
+	}
+
 	var sum float64
 
-	m := len(dataset.X)
 	for i := 0; i < m; i++ {
 		ret := b.Fct(dataset.X[i].ToVector())
 		tmp := ret - dataset.Y[i][0]
@@ -141,8 +152,17 @@ func (b *LinearRegression) GradientDescent(dataset Dataset, alpha float64, plotD
 	ch := make(chan string)
 	go func() {
 		defer close(ch)
+
+		m, n := dataset.X.Dim()
+		if n != len(b.Θ) {
+			dataset.X = NewMatrix(m, n+1).SetSubMatrix(dataset.X, 0, 1)
+			for i := 0; i < len(dataset.X); i++ {
+				dataset.X[i][0] = 1
+			}
+		}
+
 		for i := 0; i < 1e9; i++ {
-			if int(b.SquaredError(dataset)*1e10) == 0 {
+			if int(b.SquaredError(dataset)*1e20) == 0 {
 				println("----> converged in ", i, "steps")
 				return
 			}

@@ -440,3 +440,7 @@ func (v Vector) SubV(v2 Vector) Vector {
 func (v Vector) Scale(n float64) Vector {
 	return Vector(Matrix(v).Scale(n))
 }
+
+func (v Vector) String() string {
+	return Matrix(v).String()
+}
