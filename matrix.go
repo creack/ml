@@ -15,7 +15,7 @@ var (
 	ErrIdentityInvalidSize = errors.New("current dimension of matrix does not have an identity")
 	ErrNegativeIndex       = errors.New("negative index are not supported")
 	ErrOutOfBound          = errors.New("index out of bound")
-	ErrNotAVector          = errors.New("the current vector has multi dimension")
+	ErrNotAVector          = errors.New("the current vector has invalid dimension for a vector")
 	ErrSingularMatrix      = errors.New("the matrix is singuler")
 )
 
@@ -35,6 +35,16 @@ func (mr MRow) Add(mr2 MRow) MRow {
 	return Matrix{mr}.Add(Matrix{mr2})[0]
 }
 
+// ToVector returns the current row as a vector.
+// Note: Not a copy, changes to the vector affect the row.
+func (mr MRow) ToVector() Vector {
+	v := NewVector(len(mr))
+	for i, elem := range mr {
+		v[i][0] = elem
+	}
+	return v
+}
+
 // Matrix .
 type Matrix []MRow
 
@@ -45,6 +55,12 @@ func NewMatrix(m, n int) Matrix {
 		ret[i] = make([]float64, n)
 	}
 	return ret
+}
+
+// ToVector asserts the current matrix as a vector
+// and returns it.
+func (ma Matrix) ToVector() Vector {
+	return ToVector(ma)
 }
 
 // Dim returns the dimension of the matrix.
@@ -97,7 +113,9 @@ func (ma Matrix) Sub(ma2 Matrix) Matrix {
 // Mul returns the result of the current matrix multiplied by the given one.
 // NOTE: Does not change current matrix state.
 func (ma Matrix) Mul(ma2 Matrix) Matrix {
-	if !ma.DimMatch(ma2) {
+	_, n1 := ma.Dim()
+	m2, _ := ma2.Dim()
+	if n1 != m2 {
 		panic(ErrBadDim)
 	}
 	ret := NewMatrix(ma.Dim())
@@ -133,23 +151,10 @@ func (ma Matrix) Scale(n float64) Matrix {
 }
 
 // MulV multiplies the current matrix with the given vector.
-// Returns a matrix.
+// Returns a Vector.
 // NOTE: Does not change current matrix state.
-func (ma Matrix) MulV(v Vector) Matrix {
-	// if !ma.DimMatch(v) {
-	// 	panic(ErrBadDim)
-	// }
-	// ret := NewMatrix(m.Dim())
-	// for i, line := range m {
-	// 	if len(m[i]) == 0 {
-	// 		continue
-	// 	}
-	// 	for j := range line {
-	// 		ret[i][j] = m[i][j] * m2[i][j]
-	// 	}
-	// }
-	// return ret
-	return nil
+func (ma Matrix) MulV(v Vector) Vector {
+	return Vector(ma.Mul(Matrix(v)))
 }
 
 // Transpose returns a transposed copy of the current matrix.
@@ -323,20 +328,14 @@ func (ma Matrix) SubMatrix(m, n, m1, n1 int) Matrix {
 // NOTE: Changes the state of the current matrix.
 // NOTE: Overflowing submatrix produce an error.
 func (ma Matrix) SetSubMatrix(ma2 Matrix, m, n int) Matrix {
-	n1, m1 := ma.Dim()
-	n2, m2 := ma2.Dim()
-	if m < 0 || n < 0 || m2 > m1 || n2 > n1 {
+	m1, n1 := ma.Dim()
+	m2, n2 := ma2.Dim()
+	if m < 0 || n < 0 || m+m2 > m1 || n+n2 > n1 {
 		panic(ErrOutOfBound)
 	}
-	for i, line := range ma {
-		if i < m || i >= m+m2 { // If we are outside the submatrix, skip.
-			continue
-		}
+	for i, line := range ma2 {
 		for j := range line {
-			if j < n || j >= n+n2 {
-				continue
-			}
-			ma[i][j] = ma2[i-m][j-n]
+			ma[i+m][j+n] = ma2[i][j]
 		}
 	}
 	return ma
@@ -380,17 +379,6 @@ func (ma Matrix) String() string {
 	return strings.TrimSpace(ret)
 }
 
-// Vector returns assert the matrix as a vector and return
-// it as a vector.
-// NOTE: Does copy the data.
-func (ma Matrix) Vector() (Vector, error) {
-	v := Vector(ma)
-	if err := v.Validate(); err != nil {
-		return nil, err
-	}
-	return v, nil
-}
-
 // Vector is a matrix with 1 column.
 type Vector Matrix
 
@@ -399,14 +387,56 @@ func NewVector(n int) Vector {
 	return Vector(NewMatrix(n, 1))
 }
 
+// ToVector converts the matrix type to vector
+// and validates the resulting vector.
+// panic if the given matrix is not of (1,n) dimension.
+func ToVector(m Matrix) Vector {
+	v := Vector(m)
+	if err := v.Validate(); err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Dim returns the size of the vector. dim (1,n)
+func (v Vector) Dim() (int, int) {
+	return Matrix(v).Dim()
+}
+
 // Validate checks if the current matrix is valid.
 // NOTE: When instantiating a matrix outside ml.NewVector, Validate should be called.
 func (v Vector) Validate() error {
 	if err := Matrix(v).Validate(); err != nil {
 		return err
 	}
-	if len(v) > 0 && len(v[0]) != 1 {
+	if len(v) == 0 || len(v[0]) != 1 {
 		return ErrNotAVector
 	}
 	return nil
+}
+
+// Transpose return a transposed copy of the vector as a matrix (n,1).
+// NOTE: Does not change state of current vector.
+func (v Vector) Transpose() Matrix {
+	return Matrix(v).Transpose()
+}
+
+// Sum computes the sum of all the vector elements.
+func (v Vector) Sum() float64 {
+	sum := 0.0
+	for _, elem := range v[0] {
+		sum += elem
+	}
+	return sum
+}
+
+// SubV returns the result of v - v2 as a copy.
+// NOTE: Does not change cureent vector state.
+func (v Vector) SubV(v2 Vector) Vector {
+	return Vector(Matrix(v).Sub(Matrix(v2)))
+}
+
+// Scale .
+func (v Vector) Scale(n float64) Vector {
+	return Vector(Matrix(v).Scale(n))
 }

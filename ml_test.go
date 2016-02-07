@@ -17,9 +17,16 @@ func stringify(f float64) string {
 // The simplification is setting Θ0 to 0.
 func TestSimplifiedSquaredError(t *testing.T) {
 	var testSimpleDataset = ml.Dataset{
-		{X: 1, Y: 1},
-		{X: 2, Y: 2},
-		{X: 3, Y: 3},
+		X: ml.Matrix{
+			{1},
+			{2},
+			{3},
+		},
+		Y: ml.Vector{
+			{1},
+			{2},
+			{3},
+		},
 	}
 
 	// lr := ml.LinearRegression{Θ0: -0.1, Θ1: 3}
@@ -47,18 +54,18 @@ func TestSimplifiedSquaredError(t *testing.T) {
 	// 	t.Logf("%s", costPlot)
 	// }
 
-	for _, elem := range []struct {
+	for i, elem := range []struct {
 		ml.Hypothesis
 		expect float64
 	}{
-		{ml.LinearRegression{Θ0: 0, Θ1: 1}, 0},
-		{ml.LinearRegression{Θ0: 0, Θ1: 0.5}, 0.583333},
-		{ml.LinearRegression{Θ0: 0, Θ1: 0}, 2.333333},
-		{ml.LinearRegression{Θ0: 0, Θ1: -0.5}, 5.25},
-		{ml.LinearRegression{Θ0: 0, Θ1: 2.5}, 5.25},
+		{ml.LinearRegression{Θ: ml.Vector{0: {0}, 1: {1}}}, 0},
+		{ml.LinearRegression{Θ: ml.Vector{0: {0}, 1: {0.5}}}, 0.583333},
+		{ml.LinearRegression{Θ: ml.Vector{0: {0}, 1: {0}}}, 2.333333},
+		{ml.LinearRegression{Θ: ml.Vector{0: {0}, 1: {-0.5}}}, 5.25},
+		{ml.LinearRegression{Θ: ml.Vector{0: {0}, 1: {2.5}}}, 5.25},
 	} {
 		if expect, got := stringify(elem.expect), stringify(elem.Hypothesis.SquaredError(testSimpleDataset)); expect != got {
-			t.Errorf("Unexpected simplified squared error for simple dataset\nExpect:\t%s\nGot:\t%s", expect, got)
+			t.Errorf("[%d] Unexpected simplified squared error for simple dataset\nExpect:\t%s\nGot:\t%s", i, expect, got)
 		}
 	}
 }
