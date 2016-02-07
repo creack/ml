@@ -3,78 +3,246 @@ package ml
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 )
 
 // Common erros.
 var (
-	ErrBadDim           = errors.New("dimension of the two matrix differs")
-	ErrInconsistentData = errors.New("matrix has different y dimension per x")
-	ErrUninitialized    = errors.New("matrix not initialized")
-	ErrNotAVector       = errors.New("the current vector has multi dimension")
+	ErrBadDim              = errors.New("bad dimenstion for matrix")
+	ErrInconsistentData    = errors.New("matrix has different y dimension per x")
+	ErrUninitialized       = errors.New("matrix not initialized")
+	ErrIdentityInvalidSize = errors.New("current dimension of matrix does not have an identity")
+	ErrNegativeIndex       = errors.New("negative index are not supported")
+	ErrOutOfBound          = errors.New("index out of bound")
+	ErrNotAVector          = errors.New("the current vector has multi dimension")
+	ErrSingularMatrix      = errors.New("the matrix is singuler")
 )
 
+// MRow is the row type for matrix.
+type MRow []float64
+
+// Scale returns the result of the scalar multiplication of the given scalar
+// and the current matrix row.
+// NOTE: Does not change current row state.
+func (mr MRow) Scale(n float64) MRow {
+	return Matrix{mr}.Scale(n)[0]
+}
+
+// Add adds the given matrix to the current one and return the result.
+// NOTE: Does not change current matrix state.
+func (mr MRow) Add(mr2 MRow) MRow {
+	return Matrix{mr}.Add(Matrix{mr2})[0]
+}
+
 // Matrix .
-type Matrix [][]float64
+type Matrix []MRow
 
 // NewMatrix instantiates a new matrix of (n,m) dimension.
-func NewMatrix(n, m int) Matrix {
-	ret := make(Matrix, n)
-	for i := 0; i < n; i++ {
-		ret[i] = make([]float64, m)
+func NewMatrix(m, n int) Matrix {
+	ret := make(Matrix, m)
+	for i := 0; i < m; i++ {
+		ret[i] = make([]float64, n)
 	}
 	return ret
 }
 
 // Dim returns the dimension of the matrix.
-func (m Matrix) Dim() (int, int) {
-	if len(m) == 0 {
+func (ma Matrix) Dim() (int, int) {
+	if len(ma) == 0 {
 		return 0, 0
 	}
-	return len(m), len(m[0])
+	if len(ma[0]) == 0 {
+		return len(ma), 1
+	}
+	return len(ma), len(ma[0])
 }
 
-// Add adds Kthe given matrix to the current one and return the result.
-// Does not change current matrix state.
-func (m Matrix) Add(m2 Matrix) Matrix {
-	if !m.DimMatch(m2) {
+// Add adds the given matrix to the current one and return the result.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Add(ma2 Matrix) Matrix {
+	if !ma.DimMatch(ma2) {
 		panic(ErrBadDim)
 	}
-	ret := NewMatrix(m.Dim())
-	for i, line := range m {
+	ret := NewMatrix(ma.Dim())
+	for i, line := range ma {
+		if len(ma[i]) == 0 {
+			continue
+		}
 		for j := range line {
-			ret[i][j] = m[i][j] + m2[i][j]
+			ret[i][j] = ma[i][j] + ma2[i][j]
 		}
 	}
 	return ret
 }
 
 // Sub substracts the given matrix to the current one and return the result.
-// Does not change current matrix state.
-func (m Matrix) Sub(m2 Matrix) Matrix {
-	if !m.DimMatch(m2) {
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Sub(ma2 Matrix) Matrix {
+	if !ma.DimMatch(ma2) {
 		panic(ErrBadDim)
 	}
-	ret := NewMatrix(m.Dim())
-	for i, line := range m {
+	ret := NewMatrix(ma.Dim())
+	for i, line := range ma {
+		if len(ma[i]) == 0 {
+			continue
+		}
 		for j := range line {
-			ret[i][j] = m[i][j] - m2[i][j]
+			ret[i][j] = ma[i][j] - ma2[i][j]
 		}
 	}
 	return ret
 }
 
+// Mul returns the result of the current matrix multiplied by the given one.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Mul(ma2 Matrix) Matrix {
+	if !ma.DimMatch(ma2) {
+		panic(ErrBadDim)
+	}
+	ret := NewMatrix(ma.Dim())
+	for i := range ma {
+		if len(ma[i]) == 0 {
+			continue
+		}
+		for j := range ma2[0] {
+			sum := 0.
+			for k := range ma[0] {
+				sum += ma[i][k] * ma2[k][j]
+			}
+			ret[i][j] = sum
+		}
+	}
+	return ret
+}
+
+// Scale returns the result of the scalar multiplication of the given scalar
+// and the current matrix.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Scale(n float64) Matrix {
+	ret := NewMatrix(ma.Dim())
+	for i, line := range ma {
+		if len(ma[i]) == 0 {
+			continue
+		}
+		for j := range line {
+			ret[i][j] = ma[i][j] * n
+		}
+	}
+	return ret
+}
+
+// MulV multiplies the current matrix with the given vector.
+// Returns a matrix.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) MulV(v Vector) Matrix {
+	// if !ma.DimMatch(v) {
+	// 	panic(ErrBadDim)
+	// }
+	// ret := NewMatrix(m.Dim())
+	// for i, line := range m {
+	// 	if len(m[i]) == 0 {
+	// 		continue
+	// 	}
+	// 	for j := range line {
+	// 		ret[i][j] = m[i][j] * m2[i][j]
+	// 	}
+	// }
+	// return ret
+	return nil
+}
+
+// Transpose returns a transposed copy of the current matrix.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Transpose() Matrix {
+	x, y := ma.Dim()
+	ret := NewMatrix(y, x)
+	for i, line := range ma {
+		if len(ma[i]) == 0 {
+			continue
+		}
+		for j := range line {
+			ret[j][i] = ma[i][j]
+		}
+	}
+	return ret
+}
+
+// Inverse returns the inverted copy of the current matrix.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Inverse() Matrix {
+	m, n := ma.Dim()
+	if m != n {
+		panic(ErrBadDim)
+	}
+	// Step 1: Double the width of the matrix.
+	ret := ma.Extend(0, n) // Add 0 rows and n cols.
+
+	// Step 2: Set the right half of the matrix as the identity matrix.
+	ret = ret.SetSubMatrix(ret.SubMatrix(0, n, m, n).Identity(), 0, n) // sub matrix starts at (0,n) and has a (m,n) size.
+
+	for i := 0; i < len(ret); i++ {
+		if len(ma[i]) == 0 {
+			continue
+		}
+		j := i
+		for k := i; k < len(ret); k++ {
+			if math.Abs(ret[k][j]) > math.Abs(ret[j][i]) {
+				j = k
+			}
+		}
+		if j != i {
+			// Swap rows.
+			tmp := ret[i]
+			ret[i] = ret[j]
+			ret[j] = tmp
+		}
+		if ret[i][i] == 0 {
+			panic(ErrSingularMatrix)
+		}
+		// Inverse the i'th row.
+		ret[i] = ret[i].Scale(1 / ret[i][i])
+		for k := 0; k < n; k++ {
+			if k == i {
+				continue
+			}
+			ret[k] = ret[k].Add(ret[i].Scale(-ret[k][i]))
+		}
+	}
+	return ret.SubMatrix(0, n, m, n)
+}
+
+// Identity returns the identify matrix for the current one.
+// NOTE: Does not change current matrix state.
+func (ma Matrix) Identity() Matrix {
+	m, n := ma.Dim()
+	if m != n {
+		panic(ErrIdentityInvalidSize)
+	}
+	ret := NewMatrix(m, n) // Default to 0 for all fields.
+	for i := 0; i < m; i++ {
+		ret[i][i] = 1
+	}
+	return ret
+}
+
 // Equal compares the given matrix to the current one.
-func (m Matrix) Equal(m2 Matrix) bool {
+func (ma Matrix) Equal(ma2 Matrix) bool {
 	// If dim mismatch, mot equal.
-	if !m.DimMatch(m2) {
+	if !ma.DimMatch(ma2) {
 		return false
 	}
 	// Check each element of both matrix.
-	x, y := m.Dim()
-	for i := 0; i < x; i++ {
-		for j := 0; j < y; j++ {
-			if m[i][j] != m2[i][j] {
+	m, n := ma.Dim()
+	for i := 0; i < m; i++ {
+		if len(ma[i]) == 0 {
+			if len(ma2[i]) != 0 {
+				return false
+			}
+			continue
+		}
+		for j := 0; j < n; j++ {
+			if ma[i][j] != ma2[i][j] {
 				return false
 			}
 		}
@@ -84,17 +252,17 @@ func (m Matrix) Equal(m2 Matrix) bool {
 
 // Validate checks if the current matrix is valid.
 // NOTE: When instantiating a matrix outside ml.NewMatrix, Validate should be called.
-func (m Matrix) Validate() error {
+func (ma Matrix) Validate() error {
 	// Empty matrix is valid, but nil one is not.
-	if m == nil {
+	if ma == nil {
 		return ErrUninitialized
 	}
-	if len(m) == 0 {
+	if len(ma) == 0 {
 		return nil
 	}
-	y := len(m[0])
-	for _, line := range m {
-		if len(line) != y {
+	n := len(ma[0])
+	for _, line := range ma {
+		if len(line) != n {
 			return ErrInconsistentData
 		}
 	}
@@ -102,25 +270,125 @@ func (m Matrix) Validate() error {
 }
 
 // DimMatch checks if the given matrice has the same dimension as the current one.
-func (m Matrix) DimMatch(m2 Matrix) bool {
-	x, y := m.Dim()
-	x1, y1 := m2.Dim()
-	return x == x1 && y == y1
+func (ma Matrix) DimMatch(ma2 Matrix) bool {
+	m, n := ma.Dim()
+	m1, n1 := ma2.Dim()
+	return m == m1 && n == n1
 }
 
+// Extend returns a copy of the current matrix with m more rows and n more cols.
+// The extended rows/cols are set to 0.
+// Extend(0, 0) creates an identical copy of the matrix.
+// NOTE: Does not change state of current matrix.
+func (ma Matrix) Extend(m1, n1 int) Matrix {
+	if ma == nil {
+		return NewMatrix(m1, n1)
+	}
+	m, n := ma.Dim()
+	ret := NewMatrix(m+m1, n+n1)
+	for i, line := range ma {
+		if len(ma[i]) == 0 {
+			continue
+		}
+		for j := range line {
+			ret[i][j] = ma[i][j]
+		}
+	}
+	return ret
+}
+
+// Copy returns a copy of the current matrix.
+func (ma Matrix) Copy() Matrix {
+	return ma.Extend(0, 0)
+}
+
+// SubMatrix return a sub matrix part of the current matrix.
+// Starts at (m,n) index (0 indexed) and of dimension (m1,n1)
+// NOTE: Changes to the sub matrix will change the parent one.
+func (ma Matrix) SubMatrix(m, n, m1, n1 int) Matrix {
+	if m < 0 || n < 0 || // Negative start index
+		m > len(ma) || // ma[m+i], m needs not be smaller than len(ma).
+		n+n1 > len(ma[0]) { // [n:n+n1], needs to be within slice length.
+		panic(ErrOutOfBound)
+	}
+
+	ret := make(Matrix, m1)
+	for i := 0; i < len(ret); i++ {
+		ret[i] = ma[m+i][n : n+n1]
+	}
+	return ret
+}
+
+// SetSubMatrix updates the current matrix with the given submatrix starting at m,n index.
+// NOTE: Changes the state of the current matrix.
+// NOTE: Overflowing submatrix produce an error.
+func (ma Matrix) SetSubMatrix(ma2 Matrix, m, n int) Matrix {
+	n1, m1 := ma.Dim()
+	n2, m2 := ma2.Dim()
+	if m < 0 || n < 0 || m2 > m1 || n2 > n1 {
+		panic(ErrOutOfBound)
+	}
+	for i, line := range ma {
+		if i < m || i >= m+m2 { // If we are outside the submatrix, skip.
+			continue
+		}
+		for j := range line {
+			if j < n || j >= n+n2 {
+				continue
+			}
+			ma[i][j] = ma2[i-m][j-n]
+		}
+	}
+	return ma
+}
+
+// // Row returns the ith row of the current matrix.
+// // NOTE: Changes to the row will change the parent matrix.
+// func (ma Matrix) Row(i int) MRow {
+// 	if i < 0 || i >= len(ma) {
+// 		panic(ErrOutOfBound)
+// 	}
+// 	return ma[i]
+// }
+
+// // SetRow sets the given row as ith row of the current matrix.
+// // NOTE: Changes the state of the current matrix.
+// func (ma Matrix) SetRow(row MRow, i int) Matrix {
+// 	if i < 0 || i >= len(ma) {
+// 		panic(ErrOutOfBound)
+// 	}
+// 	if _, n := ma.Dim(); n != len(row) {
+// 		panic(ErrBadDim)
+// 	}
+// 	ma[i] = row
+// 	return ma
+// }
+
 // String pretty prints the matrix.
-func (m Matrix) String() string {
-	if m == nil {
+func (ma Matrix) String() string {
+	if ma == nil {
 		return "<nil>"
 	}
-	if len(m) == 0 {
+	if len(ma) == 0 {
 		return "||"
 	}
-	ret := ""
-	for _, line := range m {
+	m, n := ma.Dim()
+	ret := fmt.Sprintf("(%d,%d)\n", m, n)
+	for _, line := range ma {
 		ret += fmt.Sprintf("%4v\n", line)
 	}
 	return strings.TrimSpace(ret)
+}
+
+// Vector returns assert the matrix as a vector and return
+// it as a vector.
+// NOTE: Does copy the data.
+func (ma Matrix) Vector() (Vector, error) {
+	v := Vector(ma)
+	if err := v.Validate(); err != nil {
+		return nil, err
+	}
+	return v, nil
 }
 
 // Vector is a matrix with 1 column.
