@@ -91,13 +91,15 @@ func (b LinearRegression) Fct(x float64) float64 {
 
 // Plot returns a gnuplot formatted data list.
 func (b LinearRegression) Plot(dataset Dataset) (string, error) {
-	data := "'-' title \"dataset\"\n"
+	data := "$dataset << EOD\n"
 	for _, entry := range dataset {
 		data += fmt.Sprintf("%f %f\n", entry.X, entry.Y)
 	}
-	data += "e"
+	data += "EOF\n"
+
 	data2 := fmt.Sprintf("h(x) = %f + %f * x\nplot h(x)", b.Θ0, b.Θ1)
 	cmd := exec.Command("gnuplot")
+	//plotCmd := ""
 	cmd.Stdin = strings.NewReader("set terminal png\nset xrange [0:4]\nset yrange [0:4]\nset multiplot layout 1,2\nset size 0.5,1\nplot " + data + "\nset size 0.5,1\nset style data lines\n" + data2 + "\n")
 	buf, err := cmd.CombinedOutput()
 	if err != nil {

@@ -74,12 +74,21 @@ func main() {
 	log.SetFlags(0)
 	http.HandleFunc("/echo", echo)
 	http.HandleFunc("/", home)
+	http.Handle("/js/", http.FileServer(http.Dir("./js")))
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`
 <!DOCTYPE html>
 <head>
+        <script src='./js/gnuplot_api.js'></script>
+        <style>
+            .emscripten { padding-right: 0; margin-left: auto; font-size: 10px; margin-right: auto; display: block; }
+            canvas.emscripten { border: 1px solid black; }
+            textarea.emscripten { font-family: monospace; width: 80%; }
+            div.emscripten { text-align: center; }
+            table.noborder { border: 0; vertical-align: text-top; }
+        </style>
 <meta charset="utf-8">
 <script>
 window.addEventListener("load", function(evt) {
